@@ -1,0 +1,53 @@
+# register-vendor-artifact.yml — PBS component (third-party, no build step).
+#
+# PBS is Altair's PBS Professional workload manager - licensed
+# third-party software, not something HPE builds in-house. Matches the
+# "Third-Party" flag on this product in TriggerDB's Products
+# Management view.
+#
+# Uses the confirmed real registration action (register-build-artifacts,
+# plural, @main) same as the in-house components, but keeps an explicit
+# version input rather than cloudbees.version - a vendor's release
+# number is externally determined, not something our own CI run
+# increments.
+
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: register-vendor-artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        default: 2024.1.3
+        description: Vendor-supplied PBS Professional version to register
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: 2024.1.3
+    outputs:
+      artifact-id:
+        value: ${{ jobs.register.outputs.artifact-id }}
+      version:
+        value: ${{ jobs.register.outputs.version }}
+
+jobs:
+  register:
+    outputs:
+      artifact-id: pbs-artifact-${{ cloudbees.version }}
+      version: ${{ inputs.version }}
+    steps:
+      - name: Register vendor-supplied PBS artifact
+        uses: cloudbees-io/register-build-artifacts@main
+        with:
+          artifact-metadata: |
+            [
+              {
+                "name": "pbs",
+                "version": "${{ inputs.version }}",
+                "url": "https://artifactory.example.internal/hpe-releases/pbs/${{ inputs.version }}/pbs-professional.tar.gz",
+                "type": "generic"
+              }
+            ]
